@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	labels = []string{"status", "endpoint", "method", "host", "requesturl"}
+	labels = []string{"status", "endpoint", "method", "host"}
 
 	uptime = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -139,15 +139,13 @@ func PromMiddleware(promOpts *PromOpts) gin.HandlerFunc {
 		endpoint := c.Request.URL.Path
 		method := c.Request.Method
 		host := c.Request.Host
-		requesturl := c.Request.RequestURI
 
-		lvs := []string{status, endpoint, method, host, requesturl}
+		lvs := []string{status, endpoint, method, host}
 
 		isOk := promOpts.checkLabel(status, promOpts.ExcludeRegexStatus) &&
 			promOpts.checkLabel(endpoint, promOpts.ExcludeRegexEndpoint) &&
 			promOpts.checkLabel(method, promOpts.ExcludeRegexMethod) &&
-			promOpts.checkLabel(host, promOpts.ExcludeRegexHost) &&
-			promOpts.checkLabel(requesturl, promOpts.ExcludeRegexRequestUrl)
+			promOpts.checkLabel(host, promOpts.ExcludeRegexHost)
 
 		if !isOk {
 			return
