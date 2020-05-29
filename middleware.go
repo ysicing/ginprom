@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	labels = []string{"status", "endpoint", "method", "host"}
+	labels = []string{"status", "endpoint", "method", "host", "requesturl"}
 
 	uptime = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -30,7 +30,7 @@ var (
 	reqCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
-			Name:      "gin_http_request_count_total",
+			Name:      "http_request_count_total",
 			Help:      "Total number of HTTP requests made.",
 		}, labels,
 	)
@@ -38,7 +38,7 @@ var (
 	reqDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: namespace,
-			Name:      "gin_http_request_duration_seconds",
+			Name:      "http_request_duration_seconds",
 			Help:      "HTTP request latencies in seconds.",
 		}, labels,
 	)
@@ -46,7 +46,7 @@ var (
 	reqSizeBytes = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: namespace,
-			Name:      "gin_http_request_size_bytes",
+			Name:      "http_request_size_bytes",
 			Help:      "HTTP request sizes in bytes.",
 		}, labels,
 	)
@@ -54,7 +54,7 @@ var (
 	respSizeBytes = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: namespace,
-			Name:      "gin_http_response_size_bytes",
+			Name:      "http_response_size_bytes",
 			Help:      "HTTP request sizes in bytes.",
 		}, labels,
 	)
@@ -101,10 +101,11 @@ func calcRequestSize(r *http.Request) float64 {
 // PromOpts represents the Prometheus middleware Options.
 // It is used for filtering labels by regex.
 type PromOpts struct {
-	ExcludeRegexStatus   string
-	ExcludeRegexEndpoint string
-	ExcludeRegexMethod   string
-	ExcludeRegexHost     string
+	ExcludeRegexStatus     string
+	ExcludeRegexEndpoint   string
+	ExcludeRegexMethod     string
+	ExcludeRegexHost       string
+	ExcludeRegexRequestUrl string
 }
 
 var defaultPromOpts = &PromOpts{}
@@ -138,13 +139,15 @@ func PromMiddleware(promOpts *PromOpts) gin.HandlerFunc {
 		endpoint := c.Request.URL.Path
 		method := c.Request.Method
 		host := c.Request.Host
+		requesturl := c.Request.RequestURI
 
-		lvs := []string{status, endpoint, method, host}
+		lvs := []string{status, endpoint, method, host, requesturl}
 
 		isOk := promOpts.checkLabel(status, promOpts.ExcludeRegexStatus) &&
 			promOpts.checkLabel(endpoint, promOpts.ExcludeRegexEndpoint) &&
 			promOpts.checkLabel(method, promOpts.ExcludeRegexMethod) &&
-			promOpts.checkLabel(host, promOpts.ExcludeRegexMethod)
+			promOpts.checkLabel(host, promOpts.ExcludeRegexHost) &&
+			promOpts.checkLabel(requesturl, promOpts.ExcludeRegexRequestUrl)
 
 		if !isOk {
 			return
